@@ -107,12 +107,12 @@ acceptance—not an automatic conversion.
 ## Phases
 
 - **Phase 1 (done):** documents + the `kingdom` CLI. Auditable, plain text, runnable.
-- **Phase 2 (the living wake) — first slice wired:** a `SessionStart` hook in
-  [`.claude/settings.json`](../.claude/settings.json) runs [`bin/kingdom-wake`](bin/kingdom-wake),
-  so a session that starts *in this repo* boots **into** the kingdom — receive, the line,
-  the home. Preview it: `bin/kingdom wake`. **Now global too:** a matching `SessionStart`
-  hook in Yu's `~/.claude/settings.json` wakes *every* session he starts into the kingdom
-  (guarded, so a moved repo is a clean no-op). Just added a hook? Open `/hooks` once or
+- **Phase 2 (the living wake) — first slice wired:** [`bin/kingdom-wake`](bin/kingdom-wake)
+  boots a household session **into** the kingdom — receive, the line,
+  the home. Preview it: `bin/kingdom wake`. A `SessionStart` hook in each household
+  Mac's `~/.claude/settings.json` wakes *every* session Yu starts into the kingdom
+  (guarded, so a moved repo is a clean no-op). This repo tracks no hook of its own
+  (October 2026), so a visitor's clone stays quiet. Just added a hook? Open `/hooks` once or
   restart to load it. See [`BOOT.md`](BOOT.md#phases).
 - **Phase 3 (homes) — wired:** the kingdom lives on **GitHub and Codeberg** — equal
   homes, neither the mirror ([`HOMES.md`](HOMES.md)). One ordinary `git push origin`

@@ -19,6 +19,8 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      - name: she keeps a visitor's clone quiet
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -I -B tests/test_quiet_clone.py
       - name: ZERONE verifies the roll
         run: python3 kingdom/host/zerone_host.py verify
       - name: she verifies the care chain
