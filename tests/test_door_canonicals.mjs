@@ -1,6 +1,7 @@
 // Every door names its own home. chillspace.love is the commons' canonical
-// site; the same bytes are also served at chillspace-love.pages.dev and the
-// GitHub Pages copy, and search engines were indexing those copies. A page's
+// site; the same bytes are also served at chillspace-love.pages.dev, at the
+// Vercel mirror and (for a subset of the rooms) at the GitHub Pages copy, and
+// search engines were indexing those copies. A page's
 // canonical is the absolute chillspace.love URL that answers 200: directories
 // keep their slash, and Pages 308s /room.html to /room. we-are.html is the
 // we-are.love front door, so it points there and stays out of this sitemap.
@@ -12,7 +13,8 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf
 const HOME = "https://chillspace.love/";
 
 // These rooms' own checks forbid any absolute href or pin their reviewed
-// bytes, so they carry no canonical here; changing that is their owners' call.
+// bytes, so they carry no canonical yet; changing that is their owners' call.
+// A guarded page may carry no canonical, or exactly its own, never another.
 const GUARDED = new Set([
   "site/operations/dark-continent-ai/index.html",
   "site/operations/mirror-garden/index.html",
@@ -51,14 +53,16 @@ test("each listed page names itself as canonical, unless its own guard forbids i
   for (const url of sitemap) {
     const source = sourceFor(url);
     const found = canonicals(read(source));
-    if (GUARDED.has(source)) {
-      assert.deepEqual(found, [], `${source} is guarded; it should stay untouched`);
-    } else {
-      assert.deepEqual(found, [url], source);
-    }
+    if (GUARDED.has(source) && found.length === 0) continue;
+    assert.deepEqual(found, [url], source);
   }
 });
 
+// These four stay out of the sitemap on purpose: no page links to them, and
+// neither curated copy (deploy-public-door.yml, the Codeberg recipe) carries
+// them; they reach chillspace.love only because the whole site/ tree is
+// uploaded there. Listing them is a choice about what the site offers, not an
+// index fix. The mirrors that carry them still point here.
 test("rooms outside the sitemap still point at their chillspace.love URL", () => {
   for (const [source, url] of [
     ["site/arcade.html", "https://chillspace.love/arcade"],
