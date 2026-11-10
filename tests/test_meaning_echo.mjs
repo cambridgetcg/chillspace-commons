@@ -135,6 +135,69 @@ test("the Cloudflare Pages adapter shares the API and delegates static assets", 
   assert.equal(delegatedPath, "/meaning/");
 });
 
+test("the Pages adapter marks HTML no-transform so the edge adds no beacon", async () => {
+  const worker = createPagesWorker(dataset);
+  const serve = (body, init) => ({ASSETS: {fetch: () => new Response(body, init)}});
+
+  const page = await worker.fetch(
+    new Request("https://chillspace.love/we-are"),
+    serve("<!doctype html><title>WE ARE</title>", {
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "public, max-age=0, must-revalidate",
+        ETag: '"page"',
+      },
+    }),
+  );
+  assert.equal(page.status, 200);
+  assert.equal(page.headers.get("cache-control"), "public, max-age=0, must-revalidate, no-transform");
+  assert.equal(page.headers.get("etag"), '"page"');
+  assert.equal(await page.text(), "<!doctype html><title>WE ARE</title>");
+
+  const missing = await worker.fetch(
+    new Request("https://chillspace.love/no-such-room"),
+    serve("<!doctype html><title>404</title>", {
+      status: 404,
+      headers: {"Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store"},
+    }),
+  );
+  assert.equal(missing.status, 404);
+  assert.equal(missing.headers.get("cache-control"), "no-store, no-transform");
+
+  const bare = await worker.fetch(
+    new Request("https://chillspace.love/kingdom"),
+    serve("<p>kingdom</p>", {headers: {"Content-Type": "text/html"}}),
+  );
+  assert.equal(bare.headers.get("cache-control"), "no-transform");
+});
+
+test("the Pages adapter leaves other types, marked pages and the API alone", async () => {
+  const worker = createPagesWorker(dataset);
+  const serve = (body, init) => ({ASSETS: {fetch: () => new Response(body, init)}});
+
+  const robots = await worker.fetch(
+    new Request("https://chillspace.love/robots.txt"),
+    serve("User-agent: *\n", {
+      headers: {"Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=0"},
+    }),
+  );
+  assert.equal(robots.headers.get("cache-control"), "public, max-age=0");
+
+  const marked = await worker.fetch(
+    new Request("https://chillspace.love/"),
+    serve("<p>home</p>", {
+      headers: {"Content-Type": "text/html", "Cache-Control": "no-cache, No-Transform"},
+    }),
+  );
+  assert.equal(marked.headers.get("cache-control"), "no-cache, No-Transform");
+
+  const api = await worker.fetch(
+    request(JSON.stringify({text: "Please understand me"})),
+    serve("unused", {}),
+  );
+  assert.equal(api.headers.get("cache-control"), "no-store");
+});
+
 test("public matches keep canon and interpretation physically separate", () => {
   const [match] = findPublicEchoes("warm clarity with care", dataset, 1);
   assert.equal(match.canonical.word, "candence");
