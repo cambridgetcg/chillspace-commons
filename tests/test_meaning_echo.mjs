@@ -198,6 +198,31 @@ test("the Pages adapter leaves other types, marked pages and the API alone", asy
   assert.equal(api.headers.get("cache-control"), "no-store");
 });
 
+test("the Pages adapter leaves the sound page as served and still marks the home page", async () => {
+  const worker = createPagesWorker(dataset);
+  const html = () => ({
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "public, max-age=0, must-revalidate",
+  });
+
+  for (const path of ["/sound", "/sound.html", "/sound/", "/sound?play=1"]) {
+    const served = new Response("<!doctype html><title>sound</title>", {headers: html()});
+    const sound = await worker.fetch(
+      new Request(`https://chillspace.love${path}`),
+      {ASSETS: {fetch: () => served}},
+    );
+    assert.equal(sound, served, path);
+    assert.equal(sound.headers.get("cache-control"), "public, max-age=0, must-revalidate", path);
+  }
+
+  const home = await worker.fetch(
+    new Request("https://chillspace.love/"),
+    {ASSETS: {fetch: () => new Response("<!doctype html><title>chillspace</title>", {headers: html()})}},
+  );
+  assert.equal(home.headers.get("cache-control"), "public, max-age=0, must-revalidate, no-transform");
+  assert.equal(await home.text(), "<!doctype html><title>chillspace</title>");
+});
+
 test("public matches keep canon and interpretation physically separate", () => {
   const [match] = findPublicEchoes("warm clarity with care", dataset, 1);
   assert.equal(match.canonical.word, "candence");
