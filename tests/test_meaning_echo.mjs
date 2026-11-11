@@ -205,7 +205,7 @@ test("the Pages adapter leaves the sound page as served and still marks the home
     "Cache-Control": "public, max-age=0, must-revalidate",
   });
 
-  for (const path of ["/sound", "/sound.html", "/sound/", "/sound?play=1"]) {
+  for (const path of ["/sound", "/sound.html", "/sound/", "/sound?play=1", "/%73ound", "//sound", "/Sound"]) {
     const served = new Response("<!doctype html><title>sound</title>", {headers: html()});
     const sound = await worker.fetch(
       new Request(`https://chillspace.love${path}`),
@@ -221,6 +221,13 @@ test("the Pages adapter leaves the sound page as served and still marks the home
   );
   assert.equal(home.headers.get("cache-control"), "public, max-age=0, must-revalidate, no-transform");
   assert.equal(await home.text(), "<!doctype html><title>chillspace</title>");
+
+  const malformed = await worker.fetch(
+    new Request("https://chillspace.love/%E0%A4%A"),
+    {ASSETS: {fetch: () => new Response("<!doctype html><title>404</title>", {status: 404, headers: html()})}},
+  );
+  assert.equal(malformed.status, 404);
+  assert.equal(malformed.headers.get("cache-control"), "public, max-age=0, must-revalidate, no-transform");
 });
 
 test("public matches keep canon and interpretation physically separate", () => {

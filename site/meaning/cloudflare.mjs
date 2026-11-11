@@ -5,10 +5,22 @@ import {createMeaningHandler} from "./http.mjs";
 // Cache-Control is kept, and other types are left alone.
 //
 // no-transform also stops Cloudflare compressing the page. The sound page
-// (sound.html) carries its audio inline: about 1.6 MB as a file, under
-// 0.3 MB as Cloudflare sends it compressed. So it is left out, and answers
+// (sound.html) carries its audio inline: about 1.6 MB as a file, about
+// 0.28 MB with brotli (0.55 MB with gzip). So it is left out, and answers
 // exactly as ASSETS serves it. /sound.html and /sound/ redirect to /sound.
+// The path is compared decoded, with repeated slashes folded and in lower
+// case, so /%73ound or //sound is left out too.
 const LEFT_AS_SERVED = new Set(["/sound", "/sound.html", "/sound/"]);
+
+function comparablePath(pathname) {
+  let path = pathname;
+  try {
+    path = decodeURIComponent(pathname);
+  } catch {
+    // A malformed escape is compared as spelled.
+  }
+  return path.replace(/\/+/g, "/").toLowerCase();
+}
 
 function withoutEdgeInjection(response) {
   const type = response.headers.get("Content-Type") || "";
@@ -34,7 +46,7 @@ function createPagesWorker(dataset) {
         return handleMeaning(request);
       }
       const response = await env.ASSETS.fetch(request);
-      if (LEFT_AS_SERVED.has(pathname)) return response;
+      if (LEFT_AS_SERVED.has(comparablePath(pathname))) return response;
       return withoutEdgeInjection(response);
     },
   };
